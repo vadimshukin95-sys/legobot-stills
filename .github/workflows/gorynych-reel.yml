@@ -25,6 +25,10 @@ on:
         description: "Кадры для постов ВК и Telegram (1 — да, 0 — нет)"
         default: "1"
         required: true
+      base_run:
+        description: "Взять остальные кадры из запуска № (пусто — нет)"
+        default: ""
+        required: false
 
 permissions:
   contents: read
@@ -104,11 +108,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - name: Frames from the base run
+        if: inputs.base_run != ''
+        uses: actions/download-artifact@v4
         with:
           pattern: reel-*
           path: frames
           merge-multiple: true
+          run-id: ${{ inputs.base_run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Frames from this run (replace)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: reel-*
+          path: newframes
+          merge-multiple: true
+
+      - name: Merge frames
+        run: |
+          mkdir -p frames
+          cp -f newframes/* frames/ 2>/dev/null || true
+          ls frames | wc -l
 
       - uses: actions/setup-python@v5
         with:
@@ -123,7 +144,7 @@ jobs:
           ls frames | wc -l
 
       - name: Captions, sound, video
-        run: python lesson_gorynych/compose.py frames final fonts ${{ inputs.frames != '' && '--test' || '' }}
+        run: python lesson_gorynych/compose.py frames final fonts ${{ (inputs.frames != '' && inputs.base_run == '') && '--test' || '' }}
 
       - uses: actions/upload-artifact@v4
         with:
