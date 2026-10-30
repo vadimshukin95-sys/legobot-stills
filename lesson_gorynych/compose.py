@@ -175,7 +175,7 @@ for name in ('post_vk', 'post_tg'):
     t1, t2 = 'Змей Горыныч', 'урок-сборка · LEGO SPIKE Essential · legobot.ru'
     w1, w2 = d.textlength(t1, font=f1), d.textlength(t2, font=f2)
     bw = max(w1, w2) + Wd * 0.08; bh = Wd * 0.062 * 1.25 + Wd * 0.03 * 1.4 + Wd * 0.06
-    x0, y0 = (Wd - bw) / 2, Hd * 0.06
+    x0, y0 = (Wd - bw) / 2, Hd - bh - Hd * 0.05
     d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=int(Wd * 0.035), fill=(255, 255, 255, 240))
     d.text(((Wd - w1) / 2, y0 + Wd * 0.025), t1, font=f1, fill=INK)
     d.text(((Wd - w2) / 2, y0 + Wd * 0.025 + Wd * 0.062 * 1.25), t2, font=f2, fill=(74, 88, 100))
