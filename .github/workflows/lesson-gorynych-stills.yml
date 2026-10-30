@@ -1,0 +1,102 @@
+name: Stills — Змей Горыныч (SPIKE Essential)
+
+# Кадры для презентации урока: шаги сборки, детали, общие виды. Запуск вручную: Actions → Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Кадры через запятую (пусто — все)"
+        default: ""
+        required: false
+      samples:
+        description: "Сэмплы Cycles"
+        default: "64"
+        required: true
+      lines:
+        description: "Контуры Freestyle (1 — да, 0 — нет)"
+        default: "1"
+        required: true
+      matrix:
+        description: "Номера машин (JSON)"
+        default: "[0,1,2,3,4,5,6,7]"
+        required: true
+      chunks:
+        description: "Сколько всего машин (= длина matrix)"
+        default: "8"
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: stills-gorynych
+  cancel-in-progress: true
+
+jobs:
+  render:
+    name: stills ${{ matrix.chunk }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: ${{ fromJSON(inputs.matrix) }}
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/ldraw
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: lesson_gorynych/requirements.txt
+
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+
+      - name: Python packages
+        run: pip install -q -r lesson_gorynych/requirements.txt
+
+      - name: Cache LDraw parts library
+        id: ldraw
+        uses: actions/cache@v4
+        with:
+          path: ldraw
+          key: ldraw-complete-v1
+
+      - name: Download LDraw parts library
+        if: steps.ldraw.outputs.cache-hit != 'true'
+        run: |
+          curl -sSL -o complete.zip https://library.ldraw.org/library/updates/complete.zip
+          unzip -q complete.zip
+          rm complete.zip
+          test -f ldraw/LDConfig.ldr
+
+      - name: Render stills
+        run: >
+          python lesson_gorynych/stills.py lesson_gorynych/shots.json out
+          --chunk ${{ matrix.chunk }} --chunks "${{ inputs.chunks }}"
+          --samples "${{ inputs.samples }}" --lines "${{ inputs.lines }}" --only "${{ inputs.only }}"
+          2>&1 | grep -E "^(model|chunk|done|missing|freestyle|Traceback|  File|[A-Za-z]*Error)" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stills-${{ matrix.chunk }}
+          path: out/*.png
+          retention-days: 3
+          if-no-files-found: ignore
+
+  merge:
+    needs: render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/upload-artifact/merge@v4
+        with:
+          name: gorynych-stills
+          pattern: stills-*
+          delete-merged: true
+          retention-days: 7
