@@ -93,10 +93,10 @@ sc.cycles.max_bounces = 6; sc.cycles.diffuse_bounces = 2; sc.cycles.glossy_bounc
 sc.cycles.transmission_bounces = 6; sc.cycles.transparent_max_bounces = 8
 sc.render.film_transparent = True
 sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
-sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'None'; sc.view_settings.exposure = -0.1
+sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'None'; sc.view_settings.exposure = -0.25
 
 w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
-bgn = w.node_tree.nodes['Background']; bgn.inputs['Color'].default_value = (1, 1, 1, 1); bgn.inputs['Strength'].default_value = 0.55
+bgn = w.node_tree.nodes['Background']; bgn.inputs['Color'].default_value = (1, 1, 1, 1); bgn.inputs['Strength'].default_value = 0.35
 
 if a.lines == '1':
     try:
@@ -199,9 +199,9 @@ def frame(fit_pts, d, W, H, margin=0.07):
     # lights in the camera frame
     rv, uv = Vector(R[:, 0].tolist()), Vector(R[:, 1].tolist())
     L = size
-    for ob, off, en, sz in ((lights[0], d * 1.6 - rv * 1.4 + uv * 1.8, 160, 1.4),
-                            (lights[1], d * 1.8 + rv * 1.9 + uv * 0.3, 70, 2.0),
-                            (lights[2], -d * 1.6 + uv * 2.0 + rv * 0.4, 110, 1.2)):
+    for ob, off, en, sz in ((lights[0], d * 1.2 - rv * 1.2 + uv * 2.4, 60, 3.0),
+                            (lights[1], d * 1.8 + rv * 1.9 + uv * 0.3, 22, 2.5),
+                            (lights[2], -d * 1.6 + uv * 2.0 + rv * 0.4, 45, 1.5)):
         ob.location = ctr + off * L
         ob.data.energy = en * L * L; ob.data.size = sz * L
         ob.rotation_euler = (ctr - ob.location).to_track_quat('-Z', 'Y').to_euler()
