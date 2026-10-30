@@ -1,0 +1,135 @@
+name: Reel — Змей Горыныч
+
+# Рилс 1080x1920: детали падают по шагам -> едет к горе -> разворот -> домой -> детали улетают (петля).
+# Тест: frames = "0,120,186,250,330,372,430", matrix = [0,1,2,3,4,5,6], chunks = 7.
+on:
+  workflow_dispatch:
+    inputs:
+      frames:
+        description: "Кадры через запятую (пусто — весь ролик)"
+        default: ""
+        required: false
+      samples:
+        description: "Сэмплы Cycles"
+        default: "48"
+        required: true
+      matrix:
+        description: "Номера машин (JSON)"
+        default: "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]"
+        required: true
+      chunks:
+        description: "Сколько всего машин (= длина matrix)"
+        default: "20"
+        required: true
+      stills:
+        description: "Кадры для постов ВК и Telegram (1 — да, 0 — нет)"
+        default: "1"
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: reel-gorynych
+  cancel-in-progress: true
+
+jobs:
+  render:
+    name: reel ${{ matrix.chunk }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: ${{ fromJSON(inputs.matrix) }}
+    env:
+      LDRAW_DIR: ${{ github.workspace }}/ldraw
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: lesson_gorynych/requirements.txt
+
+      - name: System libraries for headless Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgl1 libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libxfixes3 > /dev/null
+
+      - name: Python packages
+        run: pip install -q -r lesson_gorynych/requirements.txt
+
+      - name: Cache LDraw parts library
+        id: ldraw
+        uses: actions/cache@v4
+        with:
+          path: ldraw
+          key: ldraw-complete-v1
+
+      - name: Download LDraw parts library
+        if: steps.ldraw.outputs.cache-hit != 'true'
+        run: |
+          curl -sSL -o complete.zip https://library.ldraw.org/library/updates/complete.zip
+          unzip -q complete.zip
+          rm complete.zip
+          test -f ldraw/LDConfig.ldr
+
+      - name: Render frames
+        run: >
+          python lesson_gorynych/reel.py out
+          --chunk ${{ matrix.chunk }} --chunks "${{ inputs.chunks }}"
+          --samples "${{ inputs.samples }}" --frames "${{ inputs.frames }}"
+          2>&1 | grep -E "^(model|chunk|done|missing|Traceback|  File|[A-Za-z]*Error)" || true
+
+      - name: Post stills
+        if: inputs.stills == '1' && matrix.chunk == 0
+        run: >
+          python lesson_gorynych/reel.py out --stills --samples 128
+          2>&1 | grep -E "^(model|done|missing|Traceback|  File|[A-Za-z]*Error)" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reel-${{ matrix.chunk }}
+          path: out/*.jpg
+          retention-days: 3
+          if-no-files-found: ignore
+
+  compose:
+    needs: render
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: reel-*
+          path: frames
+          merge-multiple: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Packages and fonts
+        run: |
+          pip install -q pillow numpy
+          mkdir -p fonts
+          curl -sSL -o fonts/Montserrat.ttf "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf"
+          which ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null)
+          ls frames | wc -l
+
+      - name: Captions, sound, video
+        run: python lesson_gorynych/compose.py frames final fonts ${{ inputs.frames != '' && '--test' || '' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gorynych-reel
+          path: |
+            final/*.jpg
+            final/*.mp4
+            final/*.wav
+          retention-days: 7
