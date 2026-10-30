@@ -127,7 +127,7 @@ def node_mat(name, base, rough, noise_amp=0.0, noise_scale=300.0, bump=0.0, wave
     if wave:
         wv = nt.nodes.new('ShaderNodeTexWave'); wv.wave_type = 'BANDS'; wv.bands_direction = 'Y'
         wv.inputs['Scale'].default_value = wave[0]; wv.inputs['Distortion'].default_value = wave[1]
-        wv.inputs['Detail'].default_value = 3; wv.inputs['Detail Scale'].default_value = 1.5
+        wv.inputs['Detail'].default_value = 5; wv.inputs['Detail Scale'].default_value = 2.5
         nt.links.new(tc.outputs['Object'], wv.inputs['Vector'])
         ramp = nt.nodes.new('ShaderNodeValToRGB')
         ramp.color_ramp.elements[0].color = wave[2]; ramp.color_ramp.elements[1].color = wave[3]
@@ -210,7 +210,7 @@ print('model parts:', len(parts), 'steps:', NSTEP, 'missing:', sorted(MISSING), 
 
 # desk
 wood = node_mat('wood', None, 0.42, bump=0.04,
-                wave=(110.0, 7.0, (0.52, 0.36, 0.21, 1), (0.36, 0.23, 0.12, 1)))
+                wave=(14.0, 9.0, (0.74, 0.56, 0.36, 1), (0.56, 0.39, 0.23, 1)))
 X0, X1, YA, YB = -2600, 2600, -3200, 2600
 desk = mesh_obj('desk', [B(X0, YA, GZ), B(X1, YA, GZ), B(X1, YB, GZ), B(X0, YB, GZ)], [(0, 1, 2, 3)], wood)
 wall_m = node_mat('wall', (0.58, 0.64, 0.62, 1), 0.9, noise_amp=0.08, noise_scale=8.0)
@@ -263,17 +263,17 @@ con = cam.constraints.new('TRACK_TO'); con.target = tgt; con.track_axis = 'TRACK
 cam_d.dof.use_dof = True; cam_d.dof.focus_object = tgt; cam_d.dof.aperture_fstop = 11.0
 
 # camera keys: frame -> (camera, target) in LDU
-CK = [(0, (330, 640, 40), (0, -350, 60)),
-      (30, (300, 560, 70), (0, 0, 60)),
-      (110, (-320, 470, 170), (0, 30, 110)),
-      (180, (260, 420, 120), (0, -20, 110)),
-      (222, (430, -250, 80), (0, -380, 100)),
-      (250, (320, -560, 120), (0, Y0 - D, 110)),
-      (306, (-310, -480, 140), (0, Y0 - D, 110)),
-      (338, (-330, 60, 90), (0, -330, 100)),
-      (372, (210, 520, 110), (0, 0, 110)),
-      (420, (330, 640, 40), (0, -350, 60)),
-      (N, (330, 640, 40), (0, -350, 60))]
+CK = [(0, (420, 900, 60), (0, -400, 80)),
+      (30, (380, 820, 140), (0, 0, 130)),
+      (110, (-460, 700, 260), (0, 20, 140)),
+      (180, (380, 640, 170), (0, -20, 140)),
+      (222, (650, -280, 130), (0, -380, 130)),
+      (250, (480, -420, 160), (0, Y0 - D, 130)),
+      (306, (-470, -380, 180), (0, Y0 - D, 130)),
+      (338, (-500, 120, 130), (0, -330, 130)),
+      (372, (300, 760, 150), (0, 0, 140)),
+      (420, (420, 900, 60), (0, -400, 80)),
+      (N, (420, 900, 60), (0, -400, 80))]
 def catmull(keys, t):
     fr = [k[0] for k in keys]
     if t <= fr[0]: return np.array(keys[0][1], float)
@@ -341,10 +341,13 @@ def render_frame(f, path):
 if a.stills:
     sc.render.use_motion_blur = False
     sc.cycles.samples = max(a.samples, 96)
-    for name, (W, H), f, c, g in (('post_vk', (1080, 1350), 330, (150, -70, 20), (0, -440, 120)),
-                                  ('post_tg', (1280, 960), 330, (190, -40, 30), (-20, -470, 120))):
+    for name, (W, H), f, c, g in (('post_vk', (1080, 1350), 330, (520, 150, 60), (0, -800, 170)),
+                                  ('post_tg', (1280, 960), 330, (560, 120, 70), (-40, -760, 160))):
         sc.render.resolution_x, sc.render.resolution_y = W, H
         STILL = (c, g)
+        y, ph, _, _ = pose(f)
+        cam_d.dof.focus_object = None
+        cam_d.dof.focus_distance = (B(*c) - B(0, y, 130)).length
         render_frame(f, os.path.join(a.out, f'{name}.jpg'))
     STILL = None
 else:

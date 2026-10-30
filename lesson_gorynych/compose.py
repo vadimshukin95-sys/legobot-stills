@@ -58,20 +58,22 @@ def steps_done(t):
 
 def overlay(img, t):
     # hook
-    plate(img, W / 2, 330, ['Соберём', 'Змея Горыныча?'], 76, pop(t, 0, 34, 5))
+    ha = 1.0 if t < 28 else (ease((34 - t) / 6) if t < 34 else 0.0)
+    if t >= 468: ha = ease((t - 468) / 8)
+    plate(img, W / 2, 270, ['Соберём', 'Змея Горыныча?'], 76, ha)
     # build
     a = pop(t, 34, 182)
-    plate(img, W / 2, 300, ['37 шагов сборки'], 64, a)
+    plate(img, W / 2, 230, ['37 шагов сборки'], 64, a)
     if a > 0:
         k = steps_done(t)
-        plate(img, W / 2, 430, [f'шаг {max(k, 1)} из 37'], 46, a, bg=GREEN, fg=CREAM, weight=700, pad=(34, 18), radius=34)
-    plate(img, W / 2, 330, ['Вперёд — 2 секунды'], 64, pop(t, F_GO, F_TURN + 2))
+        plate(img, W / 2, 345, [f'шаг {max(k, 1)} из 37'], 46, a, bg=GREEN, fg=CREAM, weight=700, pad=(34, 18), radius=34)
+    plate(img, W / 2, 250, ['Вперёд — 2 секунды'], 64, pop(t, F_GO, F_TURN + 2))
     a = pop(t, F_TURN + 2, F_BACK + 2)
-    plate(img, W / 2, 300, ['Разворот — 1 секунда'], 64, a)
-    plate(img, W / 2, 425, ['замедлено ×2'], 40, a, bg=GREEN, fg=CREAM, weight=700, pad=(30, 14), radius=30)
-    plate(img, W / 2, 330, ['Обратно — 2 секунды'], 64, pop(t, F_BACK + 2, F_HOME + 4))
-    plate(img, W / 2, 330, ['Вернулся домой!'], 68, pop(t, F_HOME + 4, F_CARD))
-    card(img, pop(t, F_CARD, N + 30, 9))
+    plate(img, W / 2, 230, ['Разворот — 1 секунда'], 64, a)
+    plate(img, W / 2, 345, ['замедлено ×2'], 40, a, bg=GREEN, fg=CREAM, weight=700, pad=(30, 14), radius=30)
+    plate(img, W / 2, 250, ['Обратно — 2 секунды'], 64, pop(t, F_BACK + 2, F_HOME + 4))
+    plate(img, W / 2, 250, ['Вернулся домой!'], 68, pop(t, F_HOME + 4, F_CARD))
+    card(img, pop(t, F_CARD, 468, 9))
 
 def card(img, alpha):
     if alpha <= 0.01: return
