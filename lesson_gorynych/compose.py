@@ -170,7 +170,7 @@ for name in ('post',):
     if not os.path.exists(p): continue
     im = Image.open(p).convert('RGBA'); Wd, Hd = im.size
     im.convert('RGB').save(os.path.join(OUT, name + '_clean.jpg'), quality=95)
-    s1, s2 = int(Wd * 0.056), int(Wd * 0.026)
+    s1, s2 = int(Wd * 0.048), int(Wd * 0.022)
     f1, f2 = font(800, s1), font(600, s2)
     lay = Image.new('RGBA', im.size, (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
     lines = [('Змей Горыныч', f1, INK, s1), ('урок-сборка · LEGO SPIKE Essential', f2, (74, 88, 100), s2), ('legobot.ru', font(800, s2), GREEN, s2)]
