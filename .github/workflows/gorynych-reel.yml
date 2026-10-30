@@ -29,6 +29,10 @@ on:
         description: "Взять остальные кадры из запуска № (пусто — нет)"
         default: ""
         required: false
+      base_run2:
+        description: "Поверх них — кадры из запуска № (пусто — нет)"
+        default: ""
+        required: false
 
 permissions:
   contents: read
@@ -118,6 +122,16 @@ jobs:
           run-id: ${{ inputs.base_run }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Frames from the second base run
+        if: inputs.base_run2 != ''
+        uses: actions/download-artifact@v4
+        with:
+          pattern: reel-*
+          path: frames2
+          merge-multiple: true
+          run-id: ${{ inputs.base_run2 }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Frames from this run (replace)
         uses: actions/download-artifact@v4
         with:
@@ -128,6 +142,7 @@ jobs:
       - name: Merge frames
         run: |
           mkdir -p frames
+          cp -f frames2/* frames/ 2>/dev/null || true
           cp -f newframes/* frames/ 2>/dev/null || true
           ls frames | wc -l
 
