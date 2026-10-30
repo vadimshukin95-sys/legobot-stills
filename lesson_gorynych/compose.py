@@ -165,21 +165,25 @@ if done:
     for i, im in enumerate(th): sheet.paste(im, ((i % 6) * 270, (i // 6) * 480))
     sheet.save(os.path.join(OUT, 'sheet.jpg'), quality=88)
 # post stills with caption
-for name in ('post_vk', 'post_tg'):
+for name in ('post',):
     p = os.path.join(FR, name + '.jpg')
     if not os.path.exists(p): continue
     im = Image.open(p).convert('RGBA'); Wd, Hd = im.size
-    im.convert('RGB').save(os.path.join(OUT, name + '_clean.jpg'), quality=94)
-    f1 = font(800, int(Wd * 0.062)); f2 = font(600, int(Wd * 0.03))
+    im.convert('RGB').save(os.path.join(OUT, name + '_clean.jpg'), quality=95)
+    s1, s2 = int(Wd * 0.056), int(Wd * 0.026)
+    f1, f2 = font(800, s1), font(600, s2)
     lay = Image.new('RGBA', im.size, (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
-    t1, t2 = 'Змей Горыныч', 'урок-сборка · LEGO SPIKE Essential · legobot.ru'
-    w1, w2 = d.textlength(t1, font=f1), d.textlength(t2, font=f2)
-    bw = max(w1, w2) + Wd * 0.08; bh = Wd * 0.062 * 1.25 + Wd * 0.03 * 1.4 + Wd * 0.06
-    x0, y0 = (Wd - bw) / 2, Hd - bh - Hd * 0.05
-    d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=int(Wd * 0.035), fill=(255, 255, 255, 240))
-    d.text(((Wd - w1) / 2, y0 + Wd * 0.025), t1, font=f1, fill=INK)
-    d.text(((Wd - w2) / 2, y0 + Wd * 0.025 + Wd * 0.062 * 1.25), t2, font=f2, fill=(74, 88, 100))
-    im.alpha_composite(lay); im.convert('RGB').save(os.path.join(OUT, name + '.jpg'), quality=94)
+    lines = [('Змей Горыныч', f1, INK, s1), ('урок-сборка · LEGO SPIKE Essential', f2, (74, 88, 100), s2), ('legobot.ru', font(800, s2), GREEN, s2)]
+    pad = int(Wd * 0.03); bw = max(d.textlength(t, font=f) for t, f, _, _ in lines) + 2 * pad
+    bh = s1 * 1.25 + s2 * 1.45 * 2 + 2 * pad
+    x0, y0 = Wd * 0.045, Hd - bh - Hd * 0.06
+    d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=int(Wd * 0.025), fill=(255, 255, 255, 242))
+    yy = y0 + pad - s1 * 0.12
+    for t, f, col, sz in lines:
+        d.text((x0 + pad, yy), t, font=f, fill=col); yy += sz * (1.25 if sz == s1 else 1.45)
+    im.alpha_composite(lay); im = im.convert('RGB')
+    im.save(os.path.join(OUT, name + '.jpg'), quality=95)
+    im.resize((1280, 960), Image.LANCZOS).save(os.path.join(OUT, 'post_tg_1280.jpg'), quality=95)
 if not TEST and len(done) == N:
     synth()
     # reel cover

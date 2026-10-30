@@ -125,12 +125,14 @@ def node_mat(name, base, rough, noise_amp=0.0, noise_scale=300.0, bump=0.0, wave
     p.inputs['Roughness'].default_value = rough
     tc = nt.nodes.new('ShaderNodeTexCoord')
     if wave:
-        wv = nt.nodes.new('ShaderNodeTexWave'); wv.wave_type = 'BANDS'; wv.bands_direction = 'X'
-        wv.inputs['Scale'].default_value = wave[0]; wv.inputs['Distortion'].default_value = wave[1]
-        wv.inputs['Detail'].default_value = 6; wv.inputs['Detail Scale'].default_value = 1.2
-        mp = nt.nodes.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (1.0, 0.06, 1.0)
-        nt.links.new(tc.outputs['Object'], mp.inputs['Vector']); nt.links.new(mp.outputs['Vector'], wv.inputs['Vector'])
+        mp = nt.nodes.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (1.0, 0.035, 1.0)
+        nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
+        wv = nt.nodes.new('ShaderNodeTexNoise'); wv.inputs['Scale'].default_value = wave[0]
+        wv.inputs['Detail'].default_value = 9.0; wv.inputs['Roughness'].default_value = 0.62
+        wv.inputs['Distortion'].default_value = wave[1]
+        nt.links.new(mp.outputs['Vector'], wv.inputs['Vector'])
         ramp = nt.nodes.new('ShaderNodeValToRGB')
+        ramp.color_ramp.elements[0].position = 0.35; ramp.color_ramp.elements[1].position = 0.68
         ramp.color_ramp.elements[0].color = wave[2]; ramp.color_ramp.elements[1].color = wave[3]
         nt.links.new(wv.outputs['Fac'], ramp.inputs['Fac'])
         nt.links.new(ramp.outputs['Color'], p.inputs['Base Color'])
@@ -211,7 +213,7 @@ print('model parts:', len(parts), 'steps:', NSTEP, 'missing:', sorted(MISSING), 
 
 # desk
 wood = node_mat('wood', None, 0.38, bump=0.008,
-                wave=(38.0, 3.0, (0.72, 0.54, 0.34, 1), (0.58, 0.41, 0.25, 1)))
+                wave=(55.0, 1.5, (0.60, 0.43, 0.27, 1), (0.74, 0.56, 0.37, 1)))
 X0, X1, YA, YB = -2600, 2600, -3200, 2600
 desk = mesh_obj('desk', [B(X0, YA, GZ), B(X1, YA, GZ), B(X1, YB, GZ), B(X0, YB, GZ)], [(0, 1, 2, 3)], wood)
 wall_m = node_mat('wall', (0.58, 0.64, 0.62, 1), 0.9, noise_amp=0.08, noise_scale=8.0)
@@ -342,8 +344,7 @@ def render_frame(f, path):
 if a.stills:
     sc.render.use_motion_blur = False
     sc.cycles.samples = max(a.samples, 96)
-    for name, (W, H), f, c, g, lens in (('post_vk', (1080, 1350), 330, (620, 330, 120), (132, -512, 150), 28),
-                                        ('post_tg', (1280, 960), 330, (620, 330, 120), (132, -512, 150), 35)):
+    for name, (W, H), f, c, g, lens in (('post', (1600, 1200), 330, (720, 380, 140), (150, -560, 150), 35),):
         cam_d.lens = lens
         sc.render.resolution_x, sc.render.resolution_y = W, H
         STILL = (c, g)
